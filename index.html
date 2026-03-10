@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Racha PRO v5.1 - Sorteio Dinâmico</title>
+    <style>
+        :root { --primary: #1b5e20; --accent: #2962ff; --bg: #f0f2f5; --white: #ffffff; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 15px; color: #333; }
+        .container { max-width: 1000px; margin: auto; }
+        
+        .tabs { display: flex; gap: 5px; margin-bottom: 15px; }
+        .tab-btn { flex: 1; padding: 12px; cursor: pointer; border: none; background: #ccc; border-radius: 8px; font-weight: bold; }
+        .tab-btn.active { background: var(--primary); color: white; }
+
+        .content-section { display: none; background: var(--white); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .content-section.active { display: block; }
+
+        .input-grid { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; margin-bottom: 20px; }
+        input, select, .btn-add { padding: 12px; border: 1px solid #ccc; border-radius: 6px; }
+        .btn-add { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: bold; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: #eee; padding: 12px; text-align: left; cursor: pointer; border-bottom: 2px solid #ddd; }
+        td { padding: 10px; border-bottom: 1px solid #eee; }
+        
+        .selection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin: 15px 0; }
+        .player-chip { display: flex; align-items: center; gap: 8px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; background: #fff; }
+        .player-chip.selected { background: #e8f5e9; border-color: var(--primary); font-weight: bold; }
+
+        .teams-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-top: 20px; }
+        .team-card { background: white; border-radius: 10px; padding: 15px; border-top: 6px solid var(--primary); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .p-row { display: flex; justify-content: space-between; font-size: 0.85em; padding: 5px 0; border-bottom: 1px dashed #eee; }
+        
+        .btn-draw { background: var(--accent); color: white; border: none; padding: 15px 40px; border-radius: 30px; font-size: 1.1em; font-weight: bold; cursor: pointer; display: block; margin: 20px auto; }
+        .btn-draw:active { transform: scale(0.98); }
+        .btn-draw:disabled { background: #ccc; }
+
+        .btn-whatsapp { background: #25d366; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; display: none; }
+
+        .badge { font-size: 0.7em; padding: 2px 5px; border-radius: 4px; color: white; font-weight: bold; }
+        .bg-def { background: #d32f2f; } .bg-mei { background: #1976d2; } .bg-atk { background: #388e3c; }
+        .avg-label { text-align: right; margin-top: 10px; font-weight: bold; color: var(--accent); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab('gestao')">⚙️ Base de Cadastro</button>
+        <button class="tab-btn" onclick="openTab('jogo')">🏟️ Sorteio</button>
+    </div>
+
+    <section id="gestao" class="content-section active">
+        <div class="input-grid">
+            <input type="hidden" id="editId">
+            <input type="text" id="pName" placeholder="Nome">
+            <select id="pPos">
+                <option value="Defensor">Defensor</option>
+                <option value="Meia">Meia</option>
+                <option value="Atacante">Atacante</option>
+            </select>
+            <input type="number" id="pNote" step="0.5" min="1" max="5" value="3.0">
+            <button class="btn-add" onclick="savePlayer()" id="btnSave">Salvar</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th onclick="sortTable('name')">Nome ↕</th>
+                    <th onclick="sortTable('pos')">Posição ↕</th>
+                    <th onclick="sortTable('note')">Nota ↕</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="baseBody"></tbody>
+        </table>
+
+        <div style="margin-top:20px; display:flex; gap:10px;">
+            <button onclick="exportJSON()" style="cursor:pointer; font-size:0.8em">📥 Exportar Backup</button>
+            <button onclick="importJSON()" style="cursor:pointer; font-size:0.8em">📤 Importar Backup</button>
+        </div>
+    </section>
+
+    <section id="jogo" class="content-section">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 id="counterLabel">Selecionados: 0/24</h3>
+            <button onclick="clearSelect()" style="cursor:pointer">Limpar Tudo</button>
+        </div>
+        
+        <div class="selection-grid" id="selectionGrid"></div>
+
+        <button class="btn-draw" id="drawBtn" onclick="drawTeams()" disabled>SORTEAR TIMES</button>
+
+        <div class="teams-container" id="results"></div>
+        <button id="btnWhatsapp" class="btn-whatsapp" onclick="copyForWhatsapp()">📋 Copiar para WhatsApp</button>
+    </section>
+</div>
+
+<script>
+    let players = JSON.parse(localStorage.getItem('racha_v51_db')) || [];
+    let sortState = { field: 'name', asc: true };
+    let lastResult = "";
+
+    function openTab(tabId) {
+        document.querySelectorAll('.content-section, .tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+        if(tabId === 'jogo') renderSelection();
+    }
+
+    function saveToStore() {
+        localStorage.setItem('racha_v51_db', JSON.stringify(players));
+        renderBase();
+    }
+
+    function savePlayer() {
+        const id = document.getElementById('editId').value;
+        const name = document.getElementById('pName').value.trim();
+        const pos = document.getElementById('pPos').value;
+        const note = parseFloat(document.getElementById('pNote').value);
+
+        if(!name) return;
+
+        if(id) {
+            const i = players.findIndex(p => p.id == id);
+            players[i] = { ...players[i], name, pos, note };
+            document.getElementById('editId').value = "";
+            document.getElementById('btnSave').innerText = "Salvar";
+        } else {
+            if(players.length >= 36) return alert("Limite 36 atingido");
+            players.push({ id: Date.now(), name, pos, note, active: false });
+        }
+        document.getElementById('pName').value = "";
+        saveToStore();
+    }
+
+    function editPlayer(id) {
+        const p = players.find(x => x.id === id);
+        document.getElementById('editId').value = p.id;
+        document.getElementById('pName').value = p.name;
+        document.getElementById('pPos').value = p.pos;
+        document.getElementById('pNote').value = p.note;
+        document.getElementById('btnSave').innerText = "Atualizar";
+    }
+
+    function deletePlayer(id) {
+        if(confirm("Excluir?")) { players = players.filter(x => x.id !== id); saveToStore(); }
+    }
+
+    function sortTable(field) {
+        sortState.asc = (sortState.field === field) ? !sortState.asc : true;
+        sortState.field = field;
+        renderBase();
+    }
+
+    function renderBase() {
+        const body = document.getElementById('baseBody');
+        body.innerHTML = "";
+        let sorted = [...players].sort((a, b) => {
+            let vA = a[sortState.field], vB = b[sortState.field];
+            if(typeof vA === 'string') return sortState.asc ? vA.localeCompare(vB) : vB.localeCompare(vA);
+            return sortState.asc ? vA - vB : vB - vA;
+        });
+        sorted.forEach(p => {
+            body.innerHTML += `<tr>
+                <td>${p.name}</td>
+                <td><span class="badge ${p.pos=='Defensor'?'bg-def':p.pos=='Meia'?'bg-mei':'bg-atk'}">${p.pos}</span></td>
+                <td>${p.note.toFixed(1)}</td>
+                <td>
+                    <button onclick="editPlayer(${p.id})">✏️</button>
+                    <button onclick="deletePlayer(${p.id})">🗑️</button>
+                </td>
+            </tr>`;
+        });
+    }
+
+    function renderSelection() {
+        const grid = document.getElementById('selectionGrid');
+        grid.innerHTML = "";
+        players.sort((a,b) => a.name.localeCompare(b.name)).forEach(p => {
+            grid.innerHTML += `
+                <div class="player-chip ${p.active?'selected':''}" onclick="toggleP(${p.id})">
+                    <span>${p.name} <br><small>${p.pos[0]} • ${p.note}</small></span>
+                </div>`;
+        });
+        const count = players.filter(x => x.active).length;
+        document.getElementById('counterLabel').innerText = `Selecionados: ${count}/24`;
+        document.getElementById('drawBtn').disabled = count < 12;
+    }
+
+    function toggleP(id) {
+        const p = players.find(x => x.id === id);
+        if(!p.active && players.filter(x => x.active).length >= 24) return;
+        p.active = !p.active;
+        saveToStore();
+        renderSelection();
+    }
+
+    function clearSelect() {
+        players.forEach(p => p.active = false);
+        saveToStore();
+        renderSelection();
+    }
+
+    // --- ALGORITMO COM ALEATORIEDADE CONTROLADA ---
+    function drawTeams() {
+        const activeOnes = players.filter(p => p.active);
+        const total = activeOnes.length;
+        const numTeams = Math.ceil(total / 6);
+        const teams = Array.from({ length: numTeams }, () => []);
+        
+        const targets = Array(numTeams).fill(6);
+        if (total % 6 !== 0) targets[numTeams - 1] = total % 6;
+
+        // Função para sortear com aleatoriedade entre notas iguais
+        const sortPote = (arr) => arr.sort((a,b) => (b.note - a.note) || (Math.random() - 0.5));
+
+        const potes = {
+            Atacante: sortPote(activeOnes.filter(p => p.pos === 'Atacante')),
+            Defensor: sortPote(activeOnes.filter(p => p.pos === 'Defensor')),
+            Meia: sortPote(activeOnes.filter(p => p.pos === 'Meia'))
+        };
+
+        const regras = [{p:'Atacante', q:1}, {p:'Defensor', q:2}, {p:'Meia', q:3}];
+        let reverse = false;
+
+        regras.forEach(regra => {
+            const pool = potes[regra.p];
+            for(let i=0; i < regra.q; i++) {
+                let order = Array.from({length: numTeams}, (_,idx) => idx);
+                if(reverse) order.reverse();
+                order.forEach(tIdx => {
+                    if(pool.length > 0 && teams[tIdx].length < targets[tIdx]) {
+                        teams[tIdx].push(pool.shift());
+                    }
+                });
+                reverse = !reverse;
+            }
+        });
+
+        // Sobras
+        const rest = sortPote([...potes.Atacante, ...potes.Defensor, ...potes.Meia]);
+        rest.forEach(p => {
+            const t = teams.find((x, idx) => x.length < targets[idx]);
+            if(t) t.push(p);
+        });
+
+        renderResults(teams);
+    }
+
+    function renderResults(teams) {
+        const resDiv = document.getElementById('results');
+        resDiv.innerHTML = "";
+        let textWhatsApp = "*⚽ ESCALAÇÃO DO RACHA*\n\n";
+
+        teams.forEach((t, i) => {
+            const avg = (t.reduce((a,b)=>a+b.note,0) / t.length).toFixed(2);
+            textWhatsApp += `*TIME ${i+1}* (Média: ${avg})\n`;
+            
+            resDiv.innerHTML += `
+                <div class="team-card ${t.length < 6 ? 'incomplete' : ''}">
+                    <h3>Time ${i+1} <small>(${t.length}/6)</small></h3>
+                    ${t.map(p => {
+                        textWhatsApp += `- ${p.name} (${p.pos[0]})\n`;
+                        return `<div class="p-row">
+                            <span class="badge ${p.pos=='Defensor'?'bg-def':p.pos=='Meia'?'bg-mei':'bg-atk'}">${p.pos[0]}</span>
+                            <span>${p.name}</span> <b>${p.note.toFixed(1)}</b>
+                        </div>`;
+                    }).join('')}
+                    <div class="avg-label">Média: ${avg}</div>
+                </div>
+            `;
+            textWhatsApp += `\n`;
+        });
+
+        lastResult = textWhatsApp;
+        document.getElementById('btnWhatsapp').style.display = 'block';
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    function copyForWhatsapp() {
+        navigator.clipboard.writeText(lastResult).then(() => {
+            alert("Escalação copiada! Agora é só colar no WhatsApp.");
+        });
+    }
+
+    function exportJSON() {
+        const blob = new Blob([JSON.stringify(players)], {type: "application/json"});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = "racha_backup.json"; a.click();
+    }
+
+    function importJSON() {
+        const inp = document.createElement('input');
+        inp.type = 'file';
+        inp.onchange = e => {
+            const reader = new FileReader();
+            reader.onload = ev => { players = JSON.parse(ev.target.result); saveToStore(); alert("OK!"); };
+            reader.readAsText(e.target.files[0]);
+        };
+        inp.click();
+    }
+
+    renderBase();
+</script>
+</body>
+</html>
