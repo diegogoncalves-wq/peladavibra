@@ -2,90 +2,205 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Racha PRO v5.1 - Sorteio Dinâmico</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pelada Vibra - PRO</title>
     <style>
         :root { --primary: #1b5e20; --accent: #2962ff; --bg: #f0f2f5; --white: #ffffff; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 15px; color: #333; }
+        
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: var(--bg); 
+            margin: 0; 
+            padding: 10px; 
+            color: #333;
+            line-height: 1.4;
+        }
+
         .container { max-width: 1000px; margin: auto; }
         
-        .tabs { display: flex; gap: 5px; margin-bottom: 15px; }
-        .tab-btn { flex: 1; padding: 12px; cursor: pointer; border: none; background: #ccc; border-radius: 8px; font-weight: bold; }
+        /* Ajuste das Abas para Mobile */
+        .tabs { 
+            display: flex; 
+            gap: 5px; 
+            margin-bottom: 15px; 
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg);
+            padding: 5px 0;
+        }
+        .tab-btn { 
+            flex: 1; 
+            padding: 15px 5px; 
+            cursor: pointer; 
+            border: none; 
+            background: #ccc; 
+            border-radius: 8px; 
+            font-weight: bold;
+            font-size: 14px;
+        }
         .tab-btn.active { background: var(--primary); color: white; }
 
-        .content-section { display: none; background: var(--white); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .content-section { display: none; background: var(--white); padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .content-section.active { display: block; }
 
-        .input-grid { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; margin-bottom: 20px; }
-        input, select, .btn-add { padding: 12px; border: 1px solid #ccc; border-radius: 6px; }
-        .btn-add { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: bold; }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { background: #eee; padding: 12px; text-align: left; cursor: pointer; border-bottom: 2px solid #ddd; }
-        td { padding: 10px; border-bottom: 1px solid #eee; }
+        /* Formulário Adaptável */
+        .input-grid { 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 10px; 
+            margin-bottom: 20px; 
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+        }
         
-        .selection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin: 15px 0; }
-        .player-chip { display: flex; align-items: center; gap: 8px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; background: #fff; }
-        .player-chip.selected { background: #e8f5e9; border-color: var(--primary); font-weight: bold; }
+        @media (min-width: 600px) {
+            .input-grid { grid-template-columns: 2fr 1fr 1fr auto; }
+        }
 
-        .teams-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-top: 20px; }
-        .team-card { background: white; border-radius: 10px; padding: 15px; border-top: 6px solid var(--primary); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .p-row { display: flex; justify-content: space-between; font-size: 0.85em; padding: 5px 0; border-bottom: 1px dashed #eee; }
+        .row-mobile { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        input, select, .btn-add { 
+            padding: 12px; 
+            border: 1px solid #ccc; 
+            border-radius: 8px; 
+            font-size: 16px; /* Evita zoom automático no iOS */
+            width: 100%;
+        }
         
-        .btn-draw { background: var(--accent); color: white; border: none; padding: 15px 40px; border-radius: 30px; font-size: 1.1em; font-weight: bold; cursor: pointer; display: block; margin: 20px auto; }
-        .btn-draw:active { transform: scale(0.98); }
-        .btn-draw:disabled { background: #ccc; }
+        .btn-add { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
 
-        .btn-whatsapp { background: #25d366; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; display: none; }
+        /* Tabela Responsiva */
+        .table-container { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 400px; }
+        th { background: #eee; padding: 12px 8px; text-align: left; font-size: 13px; }
+        td { padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 14px; }
+        
+        /* Chips de Seleção no Celular */
+        .selection-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
+            gap: 8px; 
+            margin: 15px 0; 
+        }
+        .player-chip { 
+            display: flex; 
+            flex-direction: column;
+            justify-content: center;
+            align-items: center; 
+            padding: 12px 8px; 
+            border: 1px solid #ddd; 
+            border-radius: 10px; 
+            background: #fff;
+            text-align: center;
+        }
+        .player-chip.selected { background: #e8f5e9; border-color: var(--primary); border-width: 2px; }
+        .player-chip b { font-size: 14px; margin-bottom: 4px; }
+        .player-chip small { font-size: 11px; color: #666; }
 
-        .badge { font-size: 0.7em; padding: 2px 5px; border-radius: 4px; color: white; font-weight: bold; }
+        /* Times no Celular */
+        .teams-container { 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 15px; 
+            margin-top: 20px; 
+        }
+        @media (min-width: 768px) {
+            .teams-container { grid-template-columns: 1fr 1fr; }
+        }
+
+        .team-card { 
+            background: white; 
+            border-radius: 12px; 
+            padding: 15px; 
+            border-top: 6px solid var(--primary); 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+        }
+        .p-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; }
+        
+        .btn-draw { 
+            background: var(--accent); 
+            color: white; 
+            border: none; 
+            padding: 18px; 
+            border-radius: 50px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            width: 100%; 
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(41, 98, 255, 0.3);
+        }
+
+        .btn-whatsapp { 
+            background: #25d366; 
+            color: white; 
+            border: none; 
+            padding: 15px; 
+            border-radius: 10px; 
+            font-weight: bold; 
+            width: 100%; 
+            margin-bottom: 30px;
+            display: none; 
+        }
+
+        .badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; color: white; font-weight: bold; }
         .bg-def { background: #d32f2f; } .bg-mei { background: #1976d2; } .bg-atk { background: #388e3c; }
-        .avg-label { text-align: right; margin-top: 10px; font-weight: bold; color: var(--accent); }
+        .avg-label { text-align: right; margin-top: 10px; font-weight: bold; color: var(--accent); font-size: 14px; }
+        
+        .backup-btns { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-sub { flex: 1; padding: 10px; font-size: 12px; background: white; border: 1px solid #999; border-radius: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="tabs">
-        <button class="tab-btn active" onclick="openTab('gestao')">⚙️ Base de Cadastro</button>
-        <button class="tab-btn" onclick="openTab('jogo')">🏟️ Sorteio</button>
+        <button class="tab-btn active" onclick="openTab('gestao')">⚙️ ELENCO</button>
+        <button class="tab-btn" onclick="openTab('jogo')">🏟️ SORTEIO</button>
     </div>
 
     <section id="gestao" class="content-section active">
         <div class="input-grid">
             <input type="hidden" id="editId">
-            <input type="text" id="pName" placeholder="Nome">
-            <select id="pPos">
-                <option value="Defensor">Defensor</option>
-                <option value="Meia">Meia</option>
-                <option value="Atacante">Atacante</option>
-            </select>
-            <input type="number" id="pNote" step="0.5" min="1" max="5" value="3.0">
-            <button class="btn-add" onclick="savePlayer()" id="btnSave">Salvar</button>
+            <input type="text" id="pName" placeholder="Nome do Jogador">
+            <div class="row-mobile">
+                <select id="pPos">
+                    <option value="Defensor">Defensor</option>
+                    <option value="Meia">Meia</option>
+                    <option value="Atacante">Atacante</option>
+                </select>
+                <input type="number" id="pNote" step="0.5" min="1" max="5" value="3.0">
+            </div>
+            <button class="btn-add" onclick="savePlayer()" id="btnSave">ADICIONAR</button>
         </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th onclick="sortTable('name')">Nome ↕</th>
-                    <th onclick="sortTable('pos')">Posição ↕</th>
-                    <th onclick="sortTable('note')">Nota ↕</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody id="baseBody"></tbody>
-        </table>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th onclick="sortTable('name')">NOME ↕</th>
+                        <th onclick="sortTable('pos')">POS ↕</th>
+                        <th onclick="sortTable('note')">NOTA ↕</th>
+                        <th>AÇÕES</th>
+                    </tr>
+                </thead>
+                <tbody id="baseBody"></tbody>
+            </table>
+        </div>
 
-        <div style="margin-top:20px; display:flex; gap:10px;">
-            <button onclick="exportJSON()" style="cursor:pointer; font-size:0.8em">📥 Exportar Backup</button>
-            <button onclick="importJSON()" style="cursor:pointer; font-size:0.8em">📤 Importar Backup</button>
+        <div class="backup-btns">
+            <button class="btn-sub" onclick="exportJSON()">📥 BACKUP</button>
+            <button class="btn-sub" onclick="importJSON()">📤 RESTAURAR</button>
         </div>
     </section>
 
     <section id="jogo" class="content-section">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h3 id="counterLabel">Selecionados: 0/24</h3>
-            <button onclick="clearSelect()" style="cursor:pointer">Limpar Tudo</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <b id="counterLabel">Selecionados: 0/24</b>
+            <button onclick="clearSelect()" style="background:none; border:1px solid #ccc; border-radius:5px; padding:5px 10px; font-size:12px;">Limpar</button>
         </div>
         
         <div class="selection-grid" id="selectionGrid"></div>
@@ -93,14 +208,14 @@
         <button class="btn-draw" id="drawBtn" onclick="drawTeams()" disabled>SORTEAR TIMES</button>
 
         <div class="teams-container" id="results"></div>
-        <button id="btnWhatsapp" class="btn-whatsapp" onclick="copyForWhatsapp()">📋 Copiar para WhatsApp</button>
+        <button id="btnWhatsapp" class="btn-whatsapp" onclick="copyForWhatsapp()">📋 COPIAR ESCALAÇÃO (WHATSAPP)</button>
     </section>
 </div>
 
 <script>
     let players = JSON.parse(localStorage.getItem('racha_v51_db')) || [];
     let sortState = { field: 'name', asc: true };
-    let lastResult = "";
+    let lastResultText = "";
 
     function openTab(tabId) {
         document.querySelectorAll('.content-section, .tab-btn').forEach(el => el.classList.remove('active'));
@@ -119,14 +234,12 @@
         const name = document.getElementById('pName').value.trim();
         const pos = document.getElementById('pPos').value;
         const note = parseFloat(document.getElementById('pNote').value);
-
         if(!name) return;
-
         if(id) {
             const i = players.findIndex(p => p.id == id);
             players[i] = { ...players[i], name, pos, note };
             document.getElementById('editId').value = "";
-            document.getElementById('btnSave').innerText = "Salvar";
+            document.getElementById('btnSave').innerText = "ADICIONAR";
         } else {
             if(players.length >= 36) return alert("Limite 36 atingido");
             players.push({ id: Date.now(), name, pos, note, active: false });
@@ -141,11 +254,12 @@
         document.getElementById('pName').value = p.name;
         document.getElementById('pPos').value = p.pos;
         document.getElementById('pNote').value = p.note;
-        document.getElementById('btnSave').innerText = "Atualizar";
+        document.getElementById('btnSave').innerText = "SALVAR";
+        window.scrollTo(0,0);
     }
 
     function deletePlayer(id) {
-        if(confirm("Excluir?")) { players = players.filter(x => x.id !== id); saveToStore(); }
+        if(confirm("Excluir jogador?")) { players = players.filter(x => x.id !== id); saveToStore(); }
     }
 
     function sortTable(field) {
@@ -164,12 +278,12 @@
         });
         sorted.forEach(p => {
             body.innerHTML += `<tr>
-                <td>${p.name}</td>
-                <td><span class="badge ${p.pos=='Defensor'?'bg-def':p.pos=='Meia'?'bg-mei':'bg-atk'}">${p.pos}</span></td>
+                <td><b>${p.name}</b></td>
+                <td><span class="badge ${p.pos=='Defensor'?'bg-def':p.pos=='Meia'?'bg-mei':'bg-atk'}">${p.pos[0]}</span></td>
                 <td>${p.note.toFixed(1)}</td>
                 <td>
-                    <button onclick="editPlayer(${p.id})">✏️</button>
-                    <button onclick="deletePlayer(${p.id})">🗑️</button>
+                    <button onclick="editPlayer(${p.id})" style="border:none; background:none; font-size:18px;">✏️</button>
+                    <button onclick="deletePlayer(${p.id})" style="border:none; background:none; font-size:18px;">🗑️</button>
                 </td>
             </tr>`;
         });
@@ -181,7 +295,8 @@
         players.sort((a,b) => a.name.localeCompare(b.name)).forEach(p => {
             grid.innerHTML += `
                 <div class="player-chip ${p.active?'selected':''}" onclick="toggleP(${p.id})">
-                    <span>${p.name} <br><small>${p.pos[0]} • ${p.note}</small></span>
+                    <b>${p.name}</b>
+                    <small>${p.pos} • ${p.note.toFixed(1)}</small>
                 </div>`;
         });
         const count = players.filter(x => x.active).length;
@@ -203,7 +318,6 @@
         renderSelection();
     }
 
-    // --- ALGORITMO COM ALEATORIEDADE CONTROLADA ---
     function drawTeams() {
         const activeOnes = players.filter(p => p.active);
         const total = activeOnes.length;
@@ -213,7 +327,6 @@
         const targets = Array(numTeams).fill(6);
         if (total % 6 !== 0) targets[numTeams - 1] = total % 6;
 
-        // Função para sortear com aleatoriedade entre notas iguais
         const sortPote = (arr) => arr.sort((a,b) => (b.note - a.note) || (Math.random() - 0.5));
 
         const potes = {
@@ -239,7 +352,6 @@
             }
         });
 
-        // Sobras
         const rest = sortPote([...potes.Atacante, ...potes.Defensor, ...potes.Meia]);
         rest.forEach(p => {
             const t = teams.find((x, idx) => x.length < targets[idx]);
@@ -252,7 +364,7 @@
     function renderResults(teams) {
         const resDiv = document.getElementById('results');
         resDiv.innerHTML = "";
-        let textWhatsApp = "*⚽ ESCALAÇÃO DO RACHA*\n\n";
+        let textWhatsApp = "*⚽ PELADA VIBRA - ESCALAÇÃO*\n\n";
 
         teams.forEach((t, i) => {
             const avg = (t.reduce((a,b)=>a+b.note,0) / t.length).toFixed(2);
@@ -268,20 +380,20 @@
                             <span>${p.name}</span> <b>${p.note.toFixed(1)}</b>
                         </div>`;
                     }).join('')}
-                    <div class="avg-label">Média: ${avg}</div>
+                    <div class="avg-label">Média Técnica: ${avg}</div>
                 </div>
             `;
             textWhatsApp += `\n`;
         });
 
-        lastResult = textWhatsApp;
+        lastResultText = textWhatsApp;
         document.getElementById('btnWhatsapp').style.display = 'block';
-        window.scrollTo(0, document.body.scrollHeight);
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 
     function copyForWhatsapp() {
-        navigator.clipboard.writeText(lastResult).then(() => {
-            alert("Escalação copiada! Agora é só colar no WhatsApp.");
+        navigator.clipboard.writeText(lastResultText).then(() => {
+            alert("Copiado! Agora cole no seu grupo.");
         });
     }
 
@@ -296,7 +408,7 @@
         inp.type = 'file';
         inp.onchange = e => {
             const reader = new FileReader();
-            reader.onload = ev => { players = JSON.parse(ev.target.result); saveToStore(); alert("OK!"); };
+            reader.onload = ev => { players = JSON.parse(ev.target.result); saveToStore(); alert("Backup Restaurado!"); };
             reader.readAsText(e.target.files[0]);
         };
         inp.click();
